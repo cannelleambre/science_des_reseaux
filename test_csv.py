@@ -13,7 +13,7 @@ with open(filename) as csvfile:
 
 def calcul_distance(longitude1, latitude1, longitude2, latitude2):
     longitude = abs(longitude1 - longitude2)
-    latitude = abs(longitude1 - longitude2)
+    latitude = abs(latitude1 - latitude2)
     distance = math.sqrt(longitude**2 + latitude**2)
     return distance
 
