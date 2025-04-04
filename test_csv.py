@@ -41,3 +41,4 @@ def calcul_distance(longitude1, latitude1, longitude2, latitude2):
         # maj barycentre
 
 # stocker clusters ? csv?
+# id;nb_user;capatité_restante;centre
