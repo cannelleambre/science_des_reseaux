@@ -26,3 +26,18 @@ def calcul_distance(longitude1, latitude1, longitude2, latitude2):
 # si oui on l'y ajoute
     # liste ?
 # sinon on le créé
+
+
+#RAFFINAGE
+#lit ligne par ligne le fichier data
+#pour chaque ligne courante
+    # liste les clusters voisins
+        # barycentre < 45km
+        # garde cluster debit dispo 
+            # si pls cluster > debit plus dispo
+        
+    # ajoute terminal au cluster
+        # maj débit
+        # maj barycentre
+
+# stocker clusters ? csv?
