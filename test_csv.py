@@ -1,13 +1,13 @@
 import csv
+import pandas as pd
 import math
 
 nb_ligne = 0
 filename = "generated.csv"
 with open(filename) as csvfile:
     for ligne in csvfile:
-        if nb_ligne <4:      
-            mot = ligne.split(",")  
-            print(mot)
+        if nb_ligne <3:      
+            print(ligne)
 
         nb_ligne +=1
 
@@ -17,15 +17,21 @@ def calcul_distance(longitude1, latitude1, longitude2, latitude2):
     distance = math.sqrt(longitude**2 + latitude**2)
     return distance
 
-#ALGO
-# 1ère methode 
-# lit ligne par ligne le fichier
-# sur la ligne courante, on regarde si le terminal peut appartenir à cluster voisin
-    # distance < 45 km du centre
-    # debit acceptable par le beam
-# si oui on l'y ajoute
-    # liste ?
-# sinon on le créé
+#update csv cluster : nb_user +1, debit_restant -debit_user
+def ajout_user(id, centre, debit_user):
+    filename = "clusters.csv"
+    with open(filename) as csvfile:
+        writer = csv.writer(csvfile)
+        for ligne in csvfile:
+            if(ligne[4]==centre & ligne[0]==id):
+                #ligne du cluster
+                ligne[1] +=1
+                ligne[2] -= debit_user
+            else:
+                #il n'existe pas de cluster
+                new_row = []
+                writer.writerow(column_name)
+
 
 
 #RAFFINAGE
@@ -38,7 +44,9 @@ def calcul_distance(longitude1, latitude1, longitude2, latitude2):
         
     # ajoute terminal au cluster
         # maj débit
-        # maj barycentre
+        # maj nb user
+    # si pas de cluster dispo
+        #on en créée un de centre lui-même
 
 # stocker clusters ? csv?
 # id;nb_user;capatité_restante;centre
