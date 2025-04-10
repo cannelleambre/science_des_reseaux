@@ -13,5 +13,6 @@ Ordre de traitement : en premier lieu l’ordre dans lequel les points sont tra
 Ordre d’agrégation des points dans les clusters : les points sont ajoutés (décroissante/croissant de distance au centre, de demande,…).
 Plusieurs de ces heuristiques peuvent être codées et l’algorithme de clustering peut être itératif (ou pas).
 Enfin, on s’attachera à prendre du recul par rapport à l’objectif du projet. L’idée de minimiser le nombre de clusters est-elle une bonne idée ?
-CIR commited information rate : minimum garanted bandwidth
-PIR peak information rate
+CIR commited information rate : minimum garanted bandwidth = débit minimal
+
+PIR peak information rate = débit maximal
