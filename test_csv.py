@@ -1,5 +1,5 @@
 import csv
-import pandas as pd
+#mport pandas as pd
 import math
 
 nb_ligne = 0
