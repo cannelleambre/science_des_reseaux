@@ -5,7 +5,7 @@ from haversine import haversine, Unit
 import math
 
 
-def run_ball_tree(csv_file, threshold_pir):
+def (csv_file, threshold_pir):
     # Lecture du CSV
     dtype_dict = {
         'LAT': np.float32,
@@ -26,90 +26,6 @@ def run_ball_tree(csv_file, threshold_pir):
     indices = tree.query_radius(coords, r=radius)
     donnees['nb_voisins'] = np.array([len(neighs) - 1 for neighs in indices], dtype=np.int32)
     donnees['VID'] = [list(neighs[neighs != i]) for i, neighs in enumerate(indices)] # voisins id
-
-    # Assignation des clusters
-    n = 1
-    cluster_map = np.zeros(len(donnees), dtype=np.int32)
-    sorted_indices = donnees['nb_voisins'].sort_values(ascending=False).index
-
-    for index in sorted_indices:
-        if cluster_map[index] == 0:
-            cluster_map[index] = n
-            voisins = donnees.at[index, 'VID']
-            pir_somme = donnees.at[index, 'PIR']
-            for voisin in voisins:
-                pir_somme += donnees.at[voisin, 'PIR']
-                if pir_somme > threshold_pir:
-                    break
-            if pir_somme <= threshold_pir:
-                cluster_map[voisins] = n               
-         
-            n += 1
-
-    donnees['cluster'] = cluster_map
-
-    
-
-# Génération des couleurs
-    def generate_color(i, total):
-        # Utiliser l'index d'origine pour déterminer la couleur
-        hue = (i / total) % 1.0
-        saturation = 0.8
-        value = 0.9
-        rgb = np.array([hue, saturation, value])
-        # Convertir HSV en RGB
-        h, s, v = rgb
-        c = v * s
-        x = c * (1 - abs((h * 6) % 2 - 1))
-        m = v - c
-        
-        if h < 1/6:
-            rgb = [c, x, 0]
-        elif h < 2/6:
-            rgb = [x, c, 0]
-        elif h < 3/6:
-            rgb = [0, c, x]
-        elif h < 4/6:
-            rgb = [0, x, c]
-        elif h < 5/6:
-            rgb = [x, 0, c]
-        else:
-            rgb = [c, 0, x]
-        
-        rgb = [(int((r + m) * 255)) for r in rgb]
-        return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
-
-    # Ajout de la colonne couleur
-    donnees['color'] = 'white'  # Couleur par défaut pour les non-clusterisés
-    clusters_uniques = sorted(donnees['cluster'].unique())
-    clusters_uniques = [c for c in clusters_uniques if c != 0]  # Exclure le cluster 0
-    nombre_clusters = len(clusters_uniques)
-
-    for i, cluster in enumerate(clusters_uniques):
-        donnees.loc[donnees['cluster'] == cluster, 'color'] = generate_color(i, nombre_clusters)
-
-
-    # Export des résultats
-    donnees.to_csv("res_clusters.csv", sep=',', index=False)
-
-#DBSCAN algorithm
-def run_dbscan(csv_file, threshold_pir):
-    # Lecture du CSV
-    dtype_dict = {
-        'LAT': np.float32,
-        'LON': np.float32
-    }
-    donnees = pd.read_csv(csv_file, delimiter=",", dtype=dtype_dict)
-
-    # Initialisation des colonnes
-    donnees['nb_voisins'] = np.zeros(len(donnees), dtype=np.int32)
-    donnees['cluster'] = np.zeros(len(donnees), dtype=np.int32)
-    donnees['VID'] = [[] for _ in range(len(donnees))]
-
-    # Calcul des voisins avec dbscan
-    coords = np.radians(donnees[['LAT', 'LON']].values.astype(np.float32))
-    dbscan = DBSCAN(eps=epsilon, min_samples=min_samples, metric='haversine')
-    clusters = dbscan.fit_predict(coords)
 
     # Assignation des clusters
     n = 1
