@@ -4,91 +4,124 @@ import numpy as np
 from haversine import haversine, Unit
 import math
 
-def read_csv(file_path):
-    """Read the CSV file and return a DataFrame."""
-    return pd.read_csv(file_path)
 
-def haversine_distance(coord1, coord2):
-    """Calculate the Haversine distance between two coordinates."""
-    return haversine(coord1, coord2, unit=Unit.KILOMETERS)
+def run_ball_tree(csv_file):
+    # Lecture du CSV
+    dtype_dict = {
+        'LAT': np.float32,
+        'LON': np.float32
+    }
+    donnees = pd.read_csv("generated.csv", delimiter=",", dtype=dtype_dict)
 
-def custom_metric(x, y):
-    """Custom distance metric combining Haversine and Euclidean distances."""
-    # Calculate Haversine distance for geographical coordinates
-    coord_dist = haversine_distance((x[0], x[1]), (y[0], y[1]))
-    # Calculate Euclidean distance for other features
-    feature_dist = np.linalg.norm(x[2:] - y[2:])
-    # Combine the distances (you can adjust the weights as needed)
-    return coord_dist + feature_dist
+    # Initialisation des colonnes
+    donnees['nb_voisins'] = np.zeros(len(donnees), dtype=np.int32)
+    donnees['cluster'] = np.zeros(len(donnees), dtype=np.int32)
+    donnees['VID'] = [[] for _ in range(len(donnees))]
 
-def create_ball_tree(data):
-    """Create a Ball Tree from the data using a custom distance metric."""
-    # Extract the features for clustering
-    coordinates = data[['LAT', 'LON']].values
-    features = data[['PIR', 'CIR', 'SERVICE']].values
+    # Calcul des voisins avec BallTree
+    coords = np.radians(donnees[['LAT', 'LON']].values.astype(np.float32))
+    tree = BallTree(coords, metric='haversine', leaf_size=40)
+    radius = 45 / 6371.0
 
-    # Combine coordinates and features
-    combined_features = np.hstack((coordinates, features))
+    indices = tree.query_radius(coords, r=radius)
+    donnees['nb_voisins'] = np.array([len(neighs) - 1 for neighs in indices], dtype=np.int32)
+    donnees['VID'] = [list(neighs[neighs != i]) for i, neighs in enumerate(indices)] # voisins id
 
-    # Create the Ball Tree with the custom metric
-    tree = BallTree(combined_features, leaf_size=40, metric=custom_metric)
-    return tree, combined_features
+    # Assignation des clusters
+    n = 1
+    cluster_map = np.zeros(len(donnees), dtype=np.int32)
+    sorted_indices = donnees['nb_voisins'].sort_values(ascending=False).index
 
-def find_clusters(tree, features, max_diameter=90):
-    """Find clusters using the Ball Tree with a maximum diameter."""
-    # Query the tree to find neighbors within the maximum diameter
-    distances, indices = tree.query_radius(features, r=max_diameter / 2, return_distance=True)
-    return distances, indices
+    for index in sorted_indices:
+        if cluster_map[index] == 0:
+            cluster_map[index] = n
+            voisins = donnees.at[index, 'VID']
+            cluster_map[voisins] = n
+            n += 1
 
-def write_clusters_to_csv(data, indices, output_file):
-    """Write the clusters to a CSV file."""
-    # Create a list to store the cluster information
-    cluster_data = []
+    donnees['cluster'] = cluster_map
 
-    # Assign cluster IDs
-    cluster_id = 0
-    cluster_map = {}
+    # Assignation des clusters
+    n = 1
+    cluster_map = np.zeros(len(donnees), dtype=np.int32)
+    sorted_indices = donnees['nb_voisins'].sort_values(ascending=False).index
 
-    for i, ind in enumerate(indices):
-        for j in ind:
-            if j not in cluster_map:
-                cluster_map[j] = cluster_id
-                cluster_id += 1
+    for index in sorted_indices:
+        if cluster_map[index] == 0:
+            cluster_map[index] = n
+            voisins = donnees.at[index, 'VID']
+            cluster_map[voisins] = n
+            n += 1
 
-    # Create a DataFrame to store the cluster information
-    for i, ind in enumerate(indices):
-        for j in ind:
-            cluster_data.append({
-                'Point_Index': i,
-                'Cluster_ID': cluster_map[j],
-                'LON': data.at[i, 'LON'],
-                'LAT': data.at[i, 'LAT'],
-                'PIR': data.at[i, 'PIR'],
-                'CIR': data.at[i, 'CIR'],
-                'SERVICE': data.at[i, 'SERVICE']
-            })
+    donnees['cluster'] = cluster_map
 
-    # Convert the list to a DataFrame
-    cluster_df = pd.DataFrame(cluster_data)
+# Génération des couleurs
+    def generate_color(i, total):
+        # Utiliser l'index d'origine pour déterminer la couleur
+        hue = (i / total) % 1.0
+        saturation = 0.8
+        value = 0.9
+        rgb = np.array([hue, saturation, value])
+        # Convertir HSV en RGB
+        h, s, v = rgb
+        c = v * s
+        x = c * (1 - abs((h * 6) % 2 - 1))
+        m = v - c
+        
+        if h < 1/6:
+            rgb = [c, x, 0]
+        elif h < 2/6:
+            rgb = [x, c, 0]
+        elif h < 3/6:
+            rgb = [0, c, x]
+        elif h < 4/6:
+            rgb = [0, x, c]
+        elif h < 5/6:
+            rgb = [x, 0, c]
+        else:
+            rgb = [c, 0, x]
+        
+        rgb = [(int((r + m) * 255)) for r in rgb]
+        return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
 
-    # Write the DataFrame to a CSV file
-    cluster_df.to_csv(output_file, index=False)
+    # Ajout de la colonne couleur
+    donnees['color'] = 'white'  # Couleur par défaut pour les non-clusterisés
+    clusters_uniques = sorted(donnees['cluster'].unique())
+    clusters_uniques = [c for c in clusters_uniques if c != 0]  # Exclure le cluster 0
+    nombre_clusters = len(clusters_uniques)
 
-def main(file_path, output_file):
-    # Read the CSV file
-    data = read_csv(file_path)
+    for i, cluster in enumerate(clusters_uniques):
+        donnees.loc[donnees['cluster'] == cluster, 'color'] = generate_color(i, nombre_clusters)
 
-    # Create the Ball Tree
-    tree, features = create_ball_tree(data)
 
-    # Find clusters
-    distances, indices = find_clusters(tree, features)
+    # Export des résultats
+    donnees.to_csv("res_clusters.csv", sep=',', index=False)
 
-    # Write clusters to a CSV file
-    write_clusters_to_csv(data, indices, output_file)
+def calcul_nb_clusters(csv_file):
 
-if __name__ == "__main__":
-    # Specify the path to your input CSV file and the output CSV file
-    input_file_path = 'generated.csv'
-    output_file_path = 'clusters.csv'
-    main(input_file_path, output_file_path)
+    # Charger le fichier CSV
+    df = pd.read_csv(csv_file)
+
+    # Compter le nombre de clusters uniques
+    num_clusters = df['cluster'].nunique()
+
+    print(num_clusters )
+    #chercher nb cluster + nb_moyen/clusters
+    # etat de l'art à faire
+
+def nb_users_par_cluster(fichier):
+    # Charger le fichier CSV
+    df = pd.read_csv(fichier)
+
+    # Compter le nombre d'utilisateurs par cluster
+    nb_users_par_cluster = df['cluster'].value_counts()
+
+    # Calculer la moyenne du nombre d'utilisateurs par cluster
+    moyenne_nb_users = nb_users_par_cluster.mean()
+
+    print( moyenne_nb_users)
+
+
+run_ball_tree("generated.csv")
+calcul_nb_clusters("res_clusters.csv")
+nb_users_par_cluster("res_clusters.csv")
