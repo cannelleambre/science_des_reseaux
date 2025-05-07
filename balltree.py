@@ -47,9 +47,8 @@ def run_ball_tree(csv_file, threshold_pir):
 
     donnees['cluster'] = cluster_map
 
-    
 
-# Génération des couleurs
+    # Génération des couleurs
     def generate_color(i, total):
         # Utiliser l'index d'origine pour déterminer la couleur
         hue = (i / total) % 1.0
@@ -116,40 +115,44 @@ def nb_users_par_cluster(fichier):
     return( moyenne_nb_users)
 
 
-#1 Gbps
-run_ball_tree("generated.csv", 1000)
-nb_cluster_mean_1gbps = calcul_nb_clusters("res_clusters.csv")
-nb_usrs_mean_1gbps = nb_users_par_cluster("res_clusters.csv")
-#2 Gbps
-run_ball_tree("generated.csv", 2000)
-nb_cluster_mean_2gbps = calcul_nb_clusters("res_clusters.csv")
-nb_usrs_mean_2gbps = nb_users_par_cluster("res_clusters.csv")
-#4 Gbps
-run_ball_tree("generated.csv", 4000)
-nb_cluster_mean_4gbps = calcul_nb_clusters("res_clusters.csv")
-nb_usrs_mean_4gbps = nb_users_par_cluster("res_clusters.csv")
 
-# Créer un DataFrame avec les informations
-data = {
-    'Débit': ['1 Gbps', '2 Gbps', '4 Gbps'],
-    'Nb de clusters': [nb_cluster_mean_1gbps, nb_cluster_mean_2gbps, nb_cluster_mean_4gbps],
-    'Nb d\'utilisateurs par cluster': [nb_usrs_mean_1gbps, nb_usrs_mean_2gbps, nb_usrs_mean_4gbps]
-}
+def run_simulation(csv_file, algorithm):
+    if algorithm == "ball_tree":
+        #1 Gbps
+        run_ball_tree("generated.csv", 1000)
+        nb_cluster_mean_1gbps = calcul_nb_clusters("res_clusters.csv")
+        nb_usrs_mean_1gbps = nb_users_par_cluster("res_clusters.csv")
+        #2 Gbps
+        run_ball_tree("generated.csv", 2000)
+        nb_cluster_mean_2gbps = calcul_nb_clusters("res_clusters.csv")
+        nb_usrs_mean_2gbps = nb_users_par_cluster("res_clusters.csv")
+        #4 Gbps
+        run_ball_tree("generated.csv", 4000)
+        nb_cluster_mean_4gbps = calcul_nb_clusters("res_clusters.csv")
+        nb_usrs_mean_4gbps = nb_users_par_cluster("res_clusters.csv")
 
-df = pd.DataFrame(data)
+        # Créer un DataFrame avec les informations
+        data = {
+            'Débit': ['1 Gbps', '2 Gbps', '4 Gbps'],
+            'Nb de clusters': [nb_cluster_mean_1gbps, nb_cluster_mean_2gbps, nb_cluster_mean_4gbps],
+            'Nb d\'utilisateurs par cluster': [nb_usrs_mean_1gbps, nb_usrs_mean_2gbps, nb_usrs_mean_4gbps]
+        }
 
-# Enregistrer le DataFrame dans un fichier CSV
-df.to_csv('stats_ball_tree.csv', index=False)
+        df = pd.DataFrame(data)
 
+        # Enregistrer le DataFrame dans un fichier CSV
+        df.to_csv('stats_ball_tree.csv', index=False)
 
-print("Pour 1 Gbps :")
-print("Nombre de clusters :" + str(nb_cluster_mean_1gbps))
-print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_1gbps))
+        print("Pour 1 Gbps :")
+        print("Nombre de clusters :" + str(nb_cluster_mean_1gbps))
+        print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_1gbps))
 
-print("Pour 2 Gbps :")
-print("Nombre de clusters :" + str(nb_cluster_mean_2gbps))
-print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_2gbps))
+        print("Pour 2 Gbps :")
+        print("Nombre de clusters :" + str(nb_cluster_mean_2gbps))
+        print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_2gbps))
 
-print("Pour 4 Gbps :")
-print("Nombre de clusters :" + str(nb_cluster_mean_4gbps))
-print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_4gbps))
+        print("Pour 4 Gbps :")
+        print("Nombre de clusters :" + str(nb_cluster_mean_4gbps))
+        print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_4gbps))
+
+run_simulation("generated.csv", "ball_tree")
