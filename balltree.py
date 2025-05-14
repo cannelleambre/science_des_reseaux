@@ -5,6 +5,7 @@ import numpy as np
 from haversine import haversine, Unit
 import math
 from colorateur import color_csv
+from calculs_clusters_stats import calcul_nb_clusters, nb_users_par_cluster
 
 def run_ball_tree(csv_file, threshold_pir):
     # Lecture du CSV
@@ -53,29 +54,7 @@ def run_ball_tree(csv_file, threshold_pir):
     #generation des couleurs
     color_csv("res_clusters_ball_tree.csv")
 
-def calcul_nb_clusters(csv_file):
 
-    # Charger le fichier CSV
-    df = pd.read_csv(csv_file)
-
-    # Compter le nombre de clusters uniques
-    num_clusters = df['cluster'].nunique()
-
-    return(num_clusters )
-    #chercher nb cluster + nb_moyen/clusters
-    # etat de l'art à faire
-
-def nb_users_par_cluster(fichier):
-    # Charger le fichier CSV
-    df = pd.read_csv(fichier)
-
-    # Compter le nombre d'utilisateurs par cluster
-    nb_users_par_cluster = df['cluster'].value_counts()
-
-    # Calculer la moyenne du nombre d'utilisateurs par cluster
-    moyenne_nb_users = nb_users_par_cluster.mean()
-
-    return( moyenne_nb_users)
 
 
 def run_simulation_ball_tree(csv_file):
