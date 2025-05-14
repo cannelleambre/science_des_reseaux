@@ -5,7 +5,57 @@ from haversine import haversine, Unit
 import math
 
 
-def (csv_file, threshold_pir):
+def divide_cluster(donnees, cluster, max_pir):
+    epsilon = 0.1
+    # Divisez le cluster en sous-clusters de manière à ce que la somme des PIR dans chaque sous-cluster soit inférieure à max_pir
+    sub_clusters = []
+    sub_cluster_pir_sums = {}
+    cluster_points = donnees.loc[donnees['cluster'] == cluster]
+    while len(cluster_points) > 0:
+        # Sélectionnez un point aléatoire dans le cluster
+        point = cluster_points.sample(n=1)
+        # Créez un nouveau sous-cluster avec le point sélectionné
+        sub_cluster = [point]
+        # Ajoutez les points voisins du point sélectionné au sous-cluster
+        voisins = donnees.loc[(donnees['LAT'] - point['LAT']).abs() < epsilon]
+        voisins = voisins.loc[(donnees['LON'] - point['LON']).abs() < epsilon]
+        sub_cluster.extend(voisins)
+        # Mettez à jour les somme des PIR dans le sous-cluster
+        
+        sub_cluster_pir_sum = sum(row['PIR'].values[0] for row in sub_cluster)
+        if sub_cluster_pir_sum > max_pir:
+            sub_sub_clusters = divide_cluster(donnees, sub_cluster, epsilon, max_pir)
+            sub_clusters.extend(sub_sub_clusters)
+        else:
+            sub_clusters.append(sub_cluster)
+        # Retirez les points du sous-cluster du cluster original
+        cluster_points = cluster_points.drop(sub_cluster.index)
+    return sub_clusters
+def calcul_nb_clusters(csv_file):
+
+    # Charger le fichier CSV
+    df = pd.read_csv(csv_file)
+
+    # Compter le nombre de clusters uniques
+    num_clusters = df['cluster'].nunique()
+
+    return(num_clusters )
+    #chercher nb cluster + nb_moyen/clusters
+    # etat de l'art à faire
+
+def nb_users_par_cluster(fichier):
+    # Charger le fichier CSV
+    df = pd.read_csv(fichier)
+
+    # Compter le nombre d'utilisateurs par cluster
+    nb_users_par_cluster = df['cluster'].value_counts()
+
+    # Calculer la moyenne du nombre d'utilisateurs par cluster
+    moyenne_nb_users = nb_users_par_cluster.mean()
+
+    return( moyenne_nb_users)
+def run_dbscan(csv_file, max_pir_threshold):
+    epsilon = 0.1
     # Lecture du CSV
     dtype_dict = {
         'LAT': np.float32,
@@ -13,44 +63,30 @@ def (csv_file, threshold_pir):
     }
     donnees = pd.read_csv(csv_file, delimiter=",", dtype=dtype_dict)
 
-    # Initialisation des colonnes
-    donnees['nb_voisins'] = np.zeros(len(donnees), dtype=np.int32)
-    donnees['cluster'] = np.zeros(len(donnees), dtype=np.int32)
-    donnees['VID'] = [[] for _ in range(len(donnees))]
-
-    # Calcul des voisins avec BallTree
+    # Calcul des clusters avec DBSCAN
     coords = np.radians(donnees[['LAT', 'LON']].values.astype(np.float32))
-    tree = BallTree(coords, metric='haversine', leaf_size=40)
-    radius = 45 / 6371.0
-
-    indices = tree.query_radius(coords, r=radius)
-    donnees['nb_voisins'] = np.array([len(neighs) - 1 for neighs in indices], dtype=np.int32)
-    donnees['VID'] = [list(neighs[neighs != i]) for i, neighs in enumerate(indices)] # voisins id
+    dbscan = DBSCAN(eps=epsilon, metric='haversine')
+    clusters = dbscan.fit_predict(coords)
 
     # Assignation des clusters
-    n = 1
-    cluster_map = np.zeros(len(donnees), dtype=np.int32)
-    sorted_indices = donnees['nb_voisins'].sort_values(ascending=False).index
+    donnees['cluster'] = clusters
 
-    for index in sorted_indices:
-        if cluster_map[index] == 0:
-            cluster_map[index] = n
-            voisins = donnees.at[index, 'VID']
-            pir_somme = donnees.at[index, 'PIR']
-            for voisin in voisins:
-                pir_somme += donnees.at[voisin, 'PIR']
-                if pir_somme > threshold_pir:
-                    break
-            if pir_somme <= threshold_pir:
-                cluster_map[voisins] = n               
-         
-            n += 1
+    # Calculez la somme des PIR des utilisateurs dans chaque cluster
+    cluster_pir_sums = {}
+    for cluster in np.unique(clusters):
+        if cluster != -1:
+            pir_sum = donnees.loc[donnees['cluster'] == cluster, 'PIR'].sum()
+            cluster_pir_sums[cluster] = pir_sum
 
-    donnees['cluster'] = cluster_map
+    # Vérifiez si la somme des PIR dépasse le max_pir_threshold
+    for cluster, pir_sum in cluster_pir_sums.items():
+        if pir_sum > max_pir_threshold:
+            # Divisez le cluster en sous-clusters de manière à ce que la somme des PIR dans chaque sous-cluster soit inférieure à max_pir_threshold
+            sub_clusters = divide_cluster(donnees, cluster, max_pir_threshold)            # Mettez à jour les clusters et les somme des PIR
+            for sub_cluster in sub_clusters:
+                donnees.loc[sub_cluster.index, 'cluster'] = len(np.unique(donnees['cluster'])) + 1
 
-    
-
-# Génération des couleurs
+    # Génération des couleurs
     def generate_color(i, total):
         # Utiliser l'index d'origine pour déterminer la couleur
         hue = (i / total) % 1.0
@@ -81,40 +117,15 @@ def (csv_file, threshold_pir):
 
     # Ajout de la colonne couleur
     donnees['color'] = 'white'  # Couleur par défaut pour les non-clusterisés
-    clusters_uniques = sorted(donnees['cluster'].unique())
-    clusters_uniques = [c for c in clusters_uniques if c != 0]  # Exclure le cluster 0
+    clusters_uniques = np.unique(donnees['cluster'])
+    clusters_uniques = [c for c in clusters_uniques if c != -1]  # Exclure les points bruyants
     nombre_clusters = len(clusters_uniques)
 
     for i, cluster in enumerate(clusters_uniques):
         donnees.loc[donnees['cluster'] == cluster, 'color'] = generate_color(i, nombre_clusters)
 
-
     # Export des résultats
-    donnees.to_csv("res_clusters.csv", sep=',', index=False)
-
-def calcul_nb_clusters(csv_file):
-
-    # Charger le fichier CSV
-    df = pd.read_csv(csv_file)
-
-    # Compter le nombre de clusters uniques
-    num_clusters = df['cluster'].nunique()
-
-    return(num_clusters )
-    #chercher nb cluster + nb_moyen/clusters
-    # etat de l'art à faire
-
-def nb_users_par_cluster(fichier):
-    # Charger le fichier CSV
-    df = pd.read_csv(fichier)
-
-    df['nb_voisins'] = df['nb_voisins'].astype(int)
-
-    # Grouper par cluster et calculer la moyenne du nombre d'utilisateurs
-    average_users = df.groupby('cluster')['nb_voisins'].mean()
-
-    return( average_users)
-
+    donnees.to_csv("res_dbscan.csv", sep=',', index=False)
 
 #1 Gbps
 run_ball_tree("test.csv", 1000)
