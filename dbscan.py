@@ -1,4 +1,3 @@
-
 import pandas as pd
 from sklearn.cluster import DBSCAN
 import numpy as np
@@ -15,8 +14,6 @@ def calcul_nb_clusters(csv_file):
     num_clusters = df['cluster'].nunique()
 
     return(num_clusters )
-    #chercher nb cluster + nb_moyen/clusters
-    # etat de l'art à faire
 
 def nb_users_par_cluster(fichier):
     # Charger le fichier CSV
