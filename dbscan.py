@@ -1,36 +1,11 @@
+
 import pandas as pd
-from sklearn.neighbors import BallTree
+from sklearn.cluster import DBSCAN
 import numpy as np
 from haversine import haversine, Unit
 import math
 
 
-def divide_cluster(donnees, cluster, max_pir):
-    epsilon = 0.1
-    # Divisez le cluster en sous-clusters de manière à ce que la somme des PIR dans chaque sous-cluster soit inférieure à max_pir
-    sub_clusters = []
-    sub_cluster_pir_sums = {}
-    cluster_points = donnees.loc[donnees['cluster'] == cluster]
-    while len(cluster_points) > 0:
-        # Sélectionnez un point aléatoire dans le cluster
-        point = cluster_points.sample(n=1)
-        # Créez un nouveau sous-cluster avec le point sélectionné
-        sub_cluster = [point]
-        # Ajoutez les points voisins du point sélectionné au sous-cluster
-        voisins = donnees.loc[(donnees['LAT'] - point['LAT']).abs() < epsilon]
-        voisins = voisins.loc[(donnees['LON'] - point['LON']).abs() < epsilon]
-        sub_cluster.extend(voisins)
-        # Mettez à jour les somme des PIR dans le sous-cluster
-        
-        sub_cluster_pir_sum = sum(row['PIR'].values[0] for row in sub_cluster)
-        if sub_cluster_pir_sum > max_pir:
-            sub_sub_clusters = divide_cluster(donnees, sub_cluster, epsilon, max_pir)
-            sub_clusters.extend(sub_sub_clusters)
-        else:
-            sub_clusters.append(sub_cluster)
-        # Retirez les points du sous-cluster du cluster original
-        cluster_points = cluster_points.drop(sub_cluster.index)
-    return sub_clusters
 def calcul_nb_clusters(csv_file):
 
     # Charger le fichier CSV
@@ -55,7 +30,6 @@ def nb_users_par_cluster(fichier):
 
     return( moyenne_nb_users)
 def run_dbscan(csv_file, max_pir_threshold):
-    epsilon = 0.1
     # Lecture du CSV
     dtype_dict = {
         'LAT': np.float32,
@@ -65,26 +39,41 @@ def run_dbscan(csv_file, max_pir_threshold):
 
     # Calcul des clusters avec DBSCAN
     coords = np.radians(donnees[['LAT', 'LON']].values.astype(np.float32))
-    dbscan = DBSCAN(eps=epsilon, metric='haversine')
-    clusters = dbscan.fit_predict(coords)
+    #appel à dbscan
+    clustering = DBSCAN(eps=0.1, min_samples=2).fit(coords)
+    clusters = clustering.labels_
+
+    indices = []
+    for i, label in enumerate(clusters):
+        if label == -1:
+            continue
+        indices.append(np.where(clusters == label)[0])
+        indices[-1] = np.setdiff1d(indices[-1], [i]) # remove self index
+    print(len(indices))
+    print(len(donnees))
+    donnees['nb_voisins'] = np.array([len(neighs) for neighs in indices], dtype=np.int32)
+    donnees['VID'] = [list(neighs) for neighs in indices] # voisins id
 
     # Assignation des clusters
-    donnees['cluster'] = clusters
+    n = 1
+    cluster_map = np.zeros(len(donnees), dtype=np.int32)
+    sorted_indices = donnees['nb_voisins'].sort_values(ascending=False).index
 
-    # Calculez la somme des PIR des utilisateurs dans chaque cluster
-    cluster_pir_sums = {}
-    for cluster in np.unique(clusters):
-        if cluster != -1:
-            pir_sum = donnees.loc[donnees['cluster'] == cluster, 'PIR'].sum()
-            cluster_pir_sums[cluster] = pir_sum
+    for index in sorted_indices:
+        if cluster_map[index] == 0:
+            cluster_map[index] = n
+            voisins = donnees.at[index, 'VID']
+            pir_somme = donnees.at[index, 'PIR']
+            for voisin in voisins:
+                pir_somme += donnees.at[voisin, 'PIR']
+                if pir_somme > threshold_pir:
+                    break
+            if pir_somme <= threshold_pir:
+                cluster_map[voisins] = n            
+            n += 1
 
-    # Vérifiez si la somme des PIR dépasse le max_pir_threshold
-    for cluster, pir_sum in cluster_pir_sums.items():
-        if pir_sum > max_pir_threshold:
-            # Divisez le cluster en sous-clusters de manière à ce que la somme des PIR dans chaque sous-cluster soit inférieure à max_pir_threshold
-            sub_clusters = divide_cluster(donnees, cluster, max_pir_threshold)            # Mettez à jour les clusters et les somme des PIR
-            for sub_cluster in sub_clusters:
-                donnees.loc[sub_cluster.index, 'cluster'] = len(np.unique(donnees['cluster'])) + 1
+    donnees['cluster'] = cluster_map
+
 
     # Génération des couleurs
     def generate_color(i, total):
@@ -127,40 +116,43 @@ def run_dbscan(csv_file, max_pir_threshold):
     # Export des résultats
     donnees.to_csv("res_dbscan.csv", sep=',', index=False)
 
-#1 Gbps
-run_ball_tree("test.csv", 1000)
-nb_cluster_mean_1gbps = calcul_nb_clusters("res_clusters.csv")
-nb_usrs_mean_1gbps = nb_users_par_cluster("res_clusters.csv")
-#2 Gbps
-run_ball_tree("test.csv", 2000)
-nb_cluster_mean_2gbps = calcul_nb_clusters("res_clusters.csv")
-nb_usrs_mean_2gbps = nb_users_par_cluster("res_clusters.csv")
-#4 Gbps
-run_ball_tree("test.csv", 4000)
-nb_cluster_mean_4gbps = calcul_nb_clusters("res_clusters.csv")
-nb_usrs_mean_4gbps = nb_users_par_cluster("res_clusters.csv")
+def run_simulation_dbscan(dbscancsv_file):
+    #1 Gbps
+    run_dbscan(dbscancsv_file, 1000)
+    nb_cluster_mean_1gbps = calcul_nb_clusters("res_clusters_dbscan.csv")
+    nb_usrs_mean_1gbps = nb_users_par_cluster("res_clusters_dbscan.csv")
+    #2 Gbps
+    run_dbscan(dbscancsv_file, 2000)
+    nb_cluster_mean_2gbps = calcul_nb_clusters("res_clusters_dbscan.csv")
+    nb_usrs_mean_2gbps = nb_users_par_cluster("res_clusters_dbscan.csv")
+    #4 Gbps
+    run_dbscan(dbscancsv_file, 4000)
+    nb_cluster_mean_4gbps = calcul_nb_clusters("res_clusters_dbscan.csv")
+    nb_usrs_mean_4gbps = nb_users_par_cluster("res_clusters_dbscan.csv")
 
-# Créer un DataFrame avec les informations
-data = {
-    'Débit': ['1 Gbps', '2 Gbps', '4 Gbps'],
-    'Nb de clusters': [nb_cluster_mean_1gbps, nb_cluster_mean_2gbps, nb_cluster_mean_4gbps],
-    'Nb d\'utilisateurs par cluster': [nb_usrs_mean_1gbps, nb_usrs_mean_2gbps, nb_usrs_mean_4gbps]
-}
+    # Créer un DataFrame avec les informations
+    data = {
+        'Débit': ['1 Gbps', '2 Gbps', '4 Gbps'],
+        'Nb de clusters': [nb_cluster_mean_1gbps, nb_cluster_mean_2gbps, nb_cluster_mean_4gbps],
+        'Nb d\'utilisateurs par cluster': [nb_usrs_mean_1gbps, nb_usrs_mean_2gbps, nb_usrs_mean_4gbps]
+    }
 
-df = pd.DataFrame(data)
+    df = pd.DataFrame(data)
 
-# Enregistrer le DataFrame dans un fichier CSV
-df.to_csv('stats_ball_tree.csv', index=False)
+    # Enregistrer le DataFrame dans un fichier CSV
+    df.to_csv('stats_dbscan.csv', index=False)
 
+    print("Pour 1 Gbps :")
+    print("Nombre de clusters :" + str(nb_cluster_mean_1gbps))
+    print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_1gbps))
 
-print("Pour 1 Gbps :")
-print("Nombre de clusters :" + str(nb_cluster_mean_1gbps))
-print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_1gbps))
+    print("Pour 2 Gbps :")
+    print("Nombre de clusters :" + str(nb_cluster_mean_2gbps))
+    print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_2gbps))
 
-print("Pour 2 Gbps :")
-print("Nombre de clusters :" + str(nb_cluster_mean_2gbps))
-print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_2gbps))
+    print("Pour 4 Gbps :")
+    print("Nombre de clusters :" + str(nb_cluster_mean_4gbps))
+    print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_4gbps))
 
-print("Pour 4 Gbps :")
-print("Nombre de clusters :" + str(nb_cluster_mean_4gbps))
-print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_4gbps))
+#DBSCAN PRENDS TROP DE TEMPS - DONNEES TROP GRANDES
+run_simulation_dbscan("test_small_csav_500.csv")
