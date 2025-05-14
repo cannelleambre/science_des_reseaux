@@ -83,17 +83,17 @@ def run_simulation_ball_tree(csv_file):
     # Enregistrer le DataFrame dans un fichier CSV
     df.to_csv('stats_ball_tree.csv', index=False)
 
-    print("Pour 1 Gbps :")
-    print("Nombre de clusters :" + str(nb_cluster_mean_1gbps))
-    print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_1gbps))
+    #print("Pour 1 Gbps :")
+    #print("Nombre de clusters :" + str(nb_cluster_mean_1gbps))
+    #print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_1gbps))
 
-    print("Pour 2 Gbps :")
-    print("Nombre de clusters :" + str(nb_cluster_mean_2gbps))
-    print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_2gbps))
+    #print("Pour 2 Gbps :")
+    #print("Nombre de clusters :" + str(nb_cluster_mean_2gbps))
+    #print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_2gbps))
 
-    print("Pour 4 Gbps :")
-    print("Nombre de clusters :" + str(nb_cluster_mean_4gbps))
-    print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_4gbps))
+    #print("Pour 4 Gbps :")
+    #print("Nombre de clusters :" + str(nb_cluster_mean_4gbps))
+    #print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_4gbps))
 
 
-run_simulation_ball_tree("test_small_csav_500.csv")
+#run_simulation_ball_tree("test_small_csav_500.csv")
