@@ -50,9 +50,9 @@ def run_ball_tree(csv_file, threshold_pir):
     donnees['cluster'] = cluster_map
 
     # Export des résultats
-    donnees.to_csv("res_clusters_ball_tree.csv", sep=',', index=False)
+    donnees.to_csv("res/res_clusters_ball_tree.csv", sep=',', index=False)
     #generation des couleurs
-    color_csv("res_clusters_ball_tree.csv")
+    color_csv("res/res_clusters_ball_tree.csv")
 
 
 
@@ -60,16 +60,16 @@ def run_ball_tree(csv_file, threshold_pir):
 def run_simulation_ball_tree(csv_file):
     #1 Gbps
     run_ball_tree(csv_file, 1000)
-    nb_cluster_mean_1gbps = calcul_nb_clusters("res_clusters_ball_tree.csv")
-    nb_usrs_mean_1gbps = nb_users_par_cluster("res_clusters_ball_tree.csv")
+    nb_cluster_mean_1gbps = calcul_nb_clusters("res/res_clusters_ball_tree.csv")
+    nb_usrs_mean_1gbps = nb_users_par_cluster("res/res_clusters_ball_tree.csv")
     #2 Gbps
     run_ball_tree(csv_file, 2000)
-    nb_cluster_mean_2gbps = calcul_nb_clusters("res_clusters_ball_tree.csv")
-    nb_usrs_mean_2gbps = nb_users_par_cluster("res_clusters_ball_tree.csv")
+    nb_cluster_mean_2gbps = calcul_nb_clusters("res/res_clusters_ball_tree.csv")
+    nb_usrs_mean_2gbps = nb_users_par_cluster("res/res_clusters_ball_tree.csv")
     #4 Gbps
     run_ball_tree(csv_file, 4000)
-    nb_cluster_mean_4gbps = calcul_nb_clusters("res_clusters_ball_tree.csv")
-    nb_usrs_mean_4gbps = nb_users_par_cluster("res_clusters_ball_tree.csv")
+    nb_cluster_mean_4gbps = calcul_nb_clusters("res/res_clusters_ball_tree.csv")
+    nb_usrs_mean_4gbps = nb_users_par_cluster("res/res_clusters_ball_tree.csv")
 
     # Créer un DataFrame avec les informations
     data = {
