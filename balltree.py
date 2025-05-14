@@ -6,7 +6,35 @@ from haversine import haversine, Unit
 import math
 
 
-def run_ball_tree(csv_file, threshold_pir):
+
+
+
+
+
+def calcul_nb_clusters(csv_file):
+
+    # Charger le fichier CSV
+    df = pd.read_csv(csv_file)
+
+    # Compter le nombre de clusters uniques
+    num_clusters = df['cluster'].nunique()
+
+    return(num_clusters )
+    #chercher nb cluster + nb_moyen/clusters
+    # etat de l'art à faire
+
+def nb_users_par_cluster(fichier):
+    # Charger le fichier CSV
+    df = pd.read_csv(fichier)
+
+    # Compter le nombre d'utilisateurs par cluster
+    nb_users_par_cluster = df['cluster'].value_counts()
+
+    # Calculer la moyenne du nombre d'utilisateurs par cluster
+    moyenne_nb_users = nb_users_par_cluster.mean()
+
+    return( moyenne_nb_users)
+def run_dbscan(csv_file, max_pir_threshold):
     # Lecture du CSV
     dtype_dict = {
         'LAT': np.float32,
@@ -14,20 +42,22 @@ def run_ball_tree(csv_file, threshold_pir):
     }
     donnees = pd.read_csv(csv_file, delimiter=",", dtype=dtype_dict)
 
-    # Initialisation des colonnes
-    donnees['nb_voisins'] = np.zeros(len(donnees), dtype=np.int32)
-    donnees['cluster'] = np.zeros(len(donnees), dtype=np.int32)
-    donnees['VID'] = [[] for _ in range(len(donnees))]
-
-    # Calcul des voisins avec BallTree
+    # Calcul des clusters avec DBSCAN
     coords = np.radians(donnees[['LAT', 'LON']].values.astype(np.float32))
-    print(type(coords))
-    tree = BallTree(coords, metric='haversine', leaf_size=40)
-    radius = 45 / 6371.0
+    #appel à dbscan
+    clustering = DBSCAN(eps=0.1, min_samples=2).fit(coords)
+    clusters = clustering.labels_
 
-    indices = tree.query_radius(coords, r=radius)
-    donnees['nb_voisins'] = np.array([len(neighs) - 1 for neighs in indices], dtype=np.int32)
-    donnees['VID'] = [list(neighs[neighs != i]) for i, neighs in enumerate(indices)] # voisins id
+    indices = []
+    for i, label in enumerate(clusters):
+        if label == -1:
+            continue
+        indices.append(np.where(clusters == label)[0])
+        indices[-1] = np.setdiff1d(indices[-1], [i]) # remove self index
+    print(len(indices))
+    print(len(donnees))
+    donnees['nb_voisins'] = np.array([len(neighs) for neighs in indices], dtype=np.int32)
+    donnees['VID'] = [list(neighs) for neighs in indices] # voisins id
 
     # Assignation des clusters
     n = 1
@@ -81,55 +111,29 @@ def run_ball_tree(csv_file, threshold_pir):
 
     # Ajout de la colonne couleur
     donnees['color'] = 'white'  # Couleur par défaut pour les non-clusterisés
-    clusters_uniques = sorted(donnees['cluster'].unique())
-    clusters_uniques = [c for c in clusters_uniques if c != 0]  # Exclure le cluster 0
+    clusters_uniques = np.unique(donnees['cluster'])
+    clusters_uniques = [c for c in clusters_uniques if c != -1]  # Exclure les points bruyants
     nombre_clusters = len(clusters_uniques)
 
     for i, cluster in enumerate(clusters_uniques):
         donnees.loc[donnees['cluster'] == cluster, 'color'] = generate_color(i, nombre_clusters)
 
-
     # Export des résultats
-    donnees.to_csv("res_clusters_ball_tree.csv", sep=',', index=False)
+    donnees.to_csv("res_dbscan.csv", sep=',', index=False)
 
-def calcul_nb_clusters(csv_file):
-
-    # Charger le fichier CSV
-    df = pd.read_csv(csv_file)
-
-    # Compter le nombre de clusters uniques
-    num_clusters = df['cluster'].nunique()
-
-    return(num_clusters )
-    #chercher nb cluster + nb_moyen/clusters
-    # etat de l'art à faire
-
-def nb_users_par_cluster(fichier):
-    # Charger le fichier CSV
-    df = pd.read_csv(fichier)
-
-    # Compter le nombre d'utilisateurs par cluster
-    nb_users_par_cluster = df['cluster'].value_counts()
-
-    # Calculer la moyenne du nombre d'utilisateurs par cluster
-    moyenne_nb_users = nb_users_par_cluster.mean()
-
-    return( moyenne_nb_users)
-
-
-def run_simulation_ball_tree(csv_file):
+def run_simulation_dbscan(dbscancsv_file):
     #1 Gbps
-    run_ball_tree(csv_file, 1000)
-    nb_cluster_mean_1gbps = calcul_nb_clusters("res_clusters_ball_tree.csv")
-    nb_usrs_mean_1gbps = nb_users_par_cluster("res_clusters_ball_tree.csv")
+    run_dbscan(dbscancsv_file, 1000)
+    nb_cluster_mean_1gbps = calcul_nb_clusters("res_clusters_dbscan.csv")
+    nb_usrs_mean_1gbps = nb_users_par_cluster("res_clusters_dbscan.csv")
     #2 Gbps
-    run_ball_tree(csv_file, 2000)
-    nb_cluster_mean_2gbps = calcul_nb_clusters("res_clusters_ball_tree.csv")
-    nb_usrs_mean_2gbps = nb_users_par_cluster("res_clusters_ball_tree.csv")
+    run_dbscan(dbscancsv_file, 2000)
+    nb_cluster_mean_2gbps = calcul_nb_clusters("res_clusters_dbscan.csv")
+    nb_usrs_mean_2gbps = nb_users_par_cluster("res_clusters_dbscan.csv")
     #4 Gbps
-    run_ball_tree(csv_file, 4000)
-    nb_cluster_mean_4gbps = calcul_nb_clusters("res_clusters_ball_tree.csv")
-    nb_usrs_mean_4gbps = nb_users_par_cluster("res_clusters_ball_tree.csv")
+    run_dbscan(dbscancsv_file, 4000)
+    nb_cluster_mean_4gbps = calcul_nb_clusters("res_clusters_dbscan.csv")
+    nb_usrs_mean_4gbps = nb_users_par_cluster("res_clusters_dbscan.csv")
 
     # Créer un DataFrame avec les informations
     data = {
@@ -141,7 +145,7 @@ def run_simulation_ball_tree(csv_file):
     df = pd.DataFrame(data)
 
     # Enregistrer le DataFrame dans un fichier CSV
-    df.to_csv('stats_ball_tree.csv', index=False)
+    df.to_csv('stats_dbscan.csv', index=False)
 
     print("Pour 1 Gbps :")
     print("Nombre de clusters :" + str(nb_cluster_mean_1gbps))
@@ -156,4 +160,4 @@ def run_simulation_ball_tree(csv_file):
     print("Nombre moyen de terminaux par clusters :" + str(nb_usrs_mean_4gbps))
 
 #DBSCAN PRENDS TROP DE TEMPS - DONNEES TROP GRANDES
-run_simulation_ball_tree("test_small_csav_500.csv")
+run_simulation_dbscan("test_small_csav_500.csv")
