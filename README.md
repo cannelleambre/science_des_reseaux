@@ -16,3 +16,7 @@ Enfin, on s’attachera à prendre du recul par rapport à l’objectif du proje
 CIR commited information rate : minimum garanted bandwidth = débit minimal
 
 PIR peak information rate = débit maximal
+
+# Lancement simulation
+
+Pour lancer la simulation, il suffit d'exécuter le fichier 'run_simulations.py', puis de rentrer dans le terminal quel algorithme de clustering a été choisi.
