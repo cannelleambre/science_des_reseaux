@@ -47,6 +47,7 @@ def run_ball_tree(csv_file, threshold_pir):
                 cluster_map[voisins] = n            
             n += 1
 
+
     donnees['cluster'] = cluster_map
 
     # Export des résultats
