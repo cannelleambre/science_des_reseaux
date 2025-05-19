@@ -3,6 +3,8 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 from sklearn.metrics.pairwise import haversine_distances
 import time
+from colorateur import color_csv
+from calculs_clusters_stats import nb_users_par_cluster_dbscan
 
 def run_dbscan(csv_file, MAX_PIR):
     # Read the CSV with the same dtype as in balltree.py
@@ -59,7 +61,7 @@ def run_dbscan(csv_file, MAX_PIR):
 
     new_labels = np.full(len(df), -1, dtype=int)
     next_label = 0
-    print("\nDébut du post-traitement des clusters DBSCAN...")
+    #print("\nDébut du post-traitement des clusters DBSCAN...")
     total_clusters = len([label for label in sorted(df['cluster'].unique()) if label != -1])
     processed_clusters = 0
     start_time = time.time()
@@ -85,7 +87,7 @@ def run_dbscan(csv_file, MAX_PIR):
             percent_done = processed_clusters / total_clusters
             estimated_total = elapsed / percent_done if percent_done > 0 else 0
             remaining = estimated_total - elapsed
-            print(f"Progression: {percent_done*100:.1f}% - Temps écoulé: {elapsed:.1f}s - Temps restant estimé: {remaining:.1f}s")
+            #print(f"Progression: {percent_done*100:.1f}% - Temps écoulé: {elapsed:.1f}s - Temps restant estimé: {remaining:.1f}s")
 
     # Assign each noise point to its own unique cluster label (after all clusters)
     noise_indices = df.index[df['cluster'] == -1].tolist()
@@ -100,3 +102,4 @@ def run_dbscan(csv_file, MAX_PIR):
     # Print the number of clusters (excluding noise if present)
     num_clusters = len(set(new_labels))
     #print(f"Number of clusters: {num_clusters}")
+    return num_clusters

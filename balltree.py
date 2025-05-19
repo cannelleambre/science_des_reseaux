@@ -5,7 +5,7 @@ import numpy as np
 from haversine import haversine, Unit
 import math
 from colorateur import color_csv
-from calculs_clusters_stats import calcul_nb_clusters, nb_users_par_cluster
+from calculs_clusters_stats import calcul_nb_clusters_ball_tree, nb_users_par_cluster_ball_tree
 
 def run_ball_tree(csv_file, threshold_pir):
     # Lecture du CSV
@@ -28,7 +28,7 @@ def run_ball_tree(csv_file, threshold_pir):
     indices = tree.query_radius(coords, r=radius)
     donnees['nb_voisins'] = np.array([len(neighs) - 1 for neighs in indices], dtype=np.int32)
     donnees['VID'] = [list(neighs[neighs != i]) for i, neighs in enumerate(indices)] # voisins id
-    print(donnees)
+    
     # Assignation des clusters
     n = 1
     cluster_map = np.zeros(len(donnees), dtype=np.int32)
