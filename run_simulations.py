@@ -2,7 +2,7 @@ from balltree import run_ball_tree
 from dbscan import run_dbscan
 from calculs_clusters_stats import calcul_nb_clusters, nb_users_par_cluster
 import pandas as pd
-csv_file = "test_small_csav_500.csv"
+csv_file = "generated.csv"
 algorithms = {
     'ball_tree': run_ball_tree,
     'dbscan': run_dbscan
@@ -14,7 +14,7 @@ if func:
     #1 Gbps
     func(csv_file, 1000)
     nb_cluster_mean_1gbps = calcul_nb_clusters("res/res_clusters_" + algorithm + ".csv")
-    nb_usrs_mean_1gbps = nb_users_par_cluster("res/res_clusters_ball_tree.csv")
+    nb_usrs_mean_1gbps = nb_users_par_cluster("res/res_clusters_" + algorithm + ".csv")
     #2 Gbps
     func(csv_file, 2000)
     nb_cluster_mean_2gbps = calcul_nb_clusters("res/res_clusters_" + algorithm + ".csv")
