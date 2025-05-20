@@ -3,11 +3,9 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 from sklearn.metrics.pairwise import haversine_distances
 import time
-from colorateur import color_csv
-from calculs_clusters_stats import nb_users_par_cluster_dbscan
 
-def run_dbscan(csv_file, MAX_PIR):
-    # dictionnary with coord from csv
+def run_dbscan(csv_file, max_threshold_PIR):
+    # Read the CSV with the same dtype as in balltree.py
     # LAT, LON, PIR columns
     dtype_dict = {
         'LAT': np.float32,
@@ -15,7 +13,6 @@ def run_dbscan(csv_file, MAX_PIR):
         'PIR': np.float32
     }
     RADIUS_KM = 45
-    MAX_PIR = 2000.0
     EPS = RADIUS_KM / 6371.0
 
     df = pd.read_csv(csv_file, dtype=dtype_dict)
@@ -23,7 +20,7 @@ def run_dbscan(csv_file, MAX_PIR):
 
     # Try different values for eps and min_samples
     # You can adjust these values for better clustering results
-    EPS = 0.5 * RADIUS_KM / 6371.0  # 6371 > radius earth 
+    EPS = 0.5 * RADIUS_KM / 6371.0  # Increase eps (try 0.5x the original radius)
     MIN_SAMPLES = 2  # Lower min_samples to allow smaller clusters
 
     clustering = DBSCAN(eps=EPS, min_samples=MIN_SAMPLES, metric='haversine').fit(coords)
@@ -45,7 +42,7 @@ def run_dbscan(csv_file, MAX_PIR):
             if current:
                 temp_coords = coords[current + [idx]]
                 temp_pir = current_pir + pirs[idx]
-                if (cluster_diameter_km(temp_coords) > RADIUS_KM) or (temp_pir > MAX_PIR):
+                if (cluster_diameter_km(temp_coords) > RADIUS_KM) or (temp_pir > max_threshold_PIR):
                     clusters.append(current)
                     current = [idx]
                     current_pir = pirs[idx]
@@ -61,7 +58,7 @@ def run_dbscan(csv_file, MAX_PIR):
 
     new_labels = np.full(len(df), -1, dtype=int)
     next_label = 0
-    #print("\nDébut du post-traitement des clusters DBSCAN...")
+    print("\nDébut du post-traitement des clusters DBSCAN...")
     total_clusters = len([label for label in sorted(df['cluster'].unique()) if label != -1])
     processed_clusters = 0
     start_time = time.time()
@@ -72,7 +69,7 @@ def run_dbscan(csv_file, MAX_PIR):
         indices = df.index[df['cluster'] == label].tolist()
         cluster_coords = coords[indices]
         cluster_pirs = df['PIR'].values[indices]
-        if (cluster_diameter_km(cluster_coords) <= RADIUS_KM) and (cluster_pirs.sum() <= MAX_PIR):
+        if (cluster_diameter_km(cluster_coords) <= RADIUS_KM) and (cluster_pirs.sum() <= max_threshold_PIR):
             new_labels[indices] = next_label
             next_label += 1
         else:
@@ -101,5 +98,29 @@ def run_dbscan(csv_file, MAX_PIR):
 
     # Print the number of clusters (excluding noise if present)
     num_clusters = len(set(new_labels))
-    #print(f"Number of clusters: {num_clusters}")
-    return num_clusters
+    df_results = pd.read_csv('res/res_clusters_dbscan.csv')
+    nb_lignes = len(df_results)
+    nb_moyen_users_par_clusters = (nb_lignes-1) / num_clusters
+
+    # Créer un nouveau DataFrame avec les colonnes souhaitées
+    df_stats = pd.DataFrame({
+        'max_threshold_PIR': [max_threshold_PIR],
+        'nb_cluster': [num_clusters],
+        'nb_moyen_users_par_clusters': [nb_moyen_users_par_clusters]
+    })
+
+    # Vérifier si le fichier CSV existe déjà
+    try:
+        df_stats_exist = pd.read_csv('stats_dbscan.csv')
+        if max_threshold_PIR in df_stats_exist['max_threshold_PIR'].values:
+            # Mettre à jour les deux autres valeurs
+            df_stats_exist.loc[df_stats_exist['max_threshold_PIR'] == max_threshold_PIR, ['nb_cluster', 'nb_moyen_users_par_clusters']] = [num_clusters, nb_moyen_users_par_clusters]
+            df_stats = df_stats_exist
+        else:
+            # Concaténer les deux DataFrames
+            df_stats = pd.concat([df_stats_exist, df_stats], ignore_index=True)
+    except FileNotFoundError:
+        pass
+
+    # Écrire les données dans le fichier CSV
+    df_stats.to_csv('stats_dbscan.csv', index=False)
