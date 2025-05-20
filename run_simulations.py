@@ -2,6 +2,7 @@ from balltree import run_ball_tree
 from dbscan import run_dbscan
 from calculs_clusters_stats import calcul_nb_clusters_ball_tree, nb_users_par_cluster_ball_tree
 import pandas as pd
+
 csv_file = "generated.csv"
 
 
