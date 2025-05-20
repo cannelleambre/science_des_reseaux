@@ -9,16 +9,16 @@ algorithm = input("Quel algorithme voulez-vous utiliser ? (ball_tree / dbscan) :
 if algorithm == 'ball_tree':
     #1 Gbps
     run_ball_tree(csv_file, 1000)
-    nb_cluster_mean_1gbps = calcul_nb_clusters_ball_tree("res/res_clusters_" + algorithm + ".csv")
-    nb_usrs_mean_1gbps = nb_users_par_cluster_ball_tree("res/res_clusters_" + algorithm + ".csv")
+    nb_cluster_mean_1gbps = calcul_nb_clusters_ball_tree("res/ball_tree/res_clusters_" + algorithm + "_1000" + ".csv")
+    nb_usrs_mean_1gbps = nb_users_par_cluster_ball_tree("res/ball_tree/res_clusters_" + algorithm + "_1000" + ".csv")
     #2 Gbps
     run_ball_tree(csv_file, 2000)
-    nb_cluster_mean_2gbps = calcul_nb_clusters_ball_tree("res/res_clusters_" + algorithm + ".csv")
-    nb_usrs_mean_2gbps = nb_users_par_cluster_ball_tree("res/res_clusters_" + algorithm + ".csv")
+    nb_cluster_mean_2gbps = calcul_nb_clusters_ball_tree("res/ball_tree/res_clusters_" + algorithm + "_2000" + ".csv")
+    nb_usrs_mean_2gbps = nb_users_par_cluster_ball_tree("res/ball_tree/res_clusters_" + algorithm + "_2000" + ".csv")
     #4 Gbps
     run_ball_tree(csv_file, 4000)
-    nb_cluster_mean_4gbps = calcul_nb_clusters_ball_tree("res/res_clusters_" + algorithm + ".csv")
-    nb_usrs_mean_4gbps = nb_users_par_cluster_ball_tree("res/res_clusters_" + algorithm + ".csv")
+    nb_cluster_mean_4gbps = calcul_nb_clusters_ball_tree("res/ball_tree/res_clusters_" + algorithm + "_4000" + ".csv")
+    nb_usrs_mean_4gbps = nb_users_par_cluster_ball_tree("res/ball_tree/res_clusters_" + algorithm + "_4000" + ".csv")
 
     # Créer un DataFrame avec les informations
     data = {
@@ -30,7 +30,7 @@ if algorithm == 'ball_tree':
     df = pd.DataFrame(data)
 
     # Enregistrer le DataFrame dans un fichier CSV
-    df.to_csv('stats_' + algorithm + '.csv', index=False)
+    df.to_csv('stats/stats_' + algorithm + '.csv', index=False)
 
     print("Pour 1 Gbps :")
     print("Nombre de clusters :" + str(nb_cluster_mean_1gbps))

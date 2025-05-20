@@ -51,6 +51,6 @@ def run_ball_tree(csv_file, threshold_pir):
     donnees['cluster'] = cluster_map
 
     # Export des résultats
-    donnees.to_csv("res/res_clusters_ball_tree.csv", sep=',', index=False)
+    donnees.to_csv("res/ball_tree/res_clusters_ball_tree_" + str(threshold_pir) +".csv", sep=',', index=False)
     #generation des couleurs
-    color_csv("res/res_clusters_ball_tree.csv")
+    color_csv("res/ball_tree/res_clusters_ball_tree_" + str(threshold_pir) +".csv")

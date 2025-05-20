@@ -3,6 +3,8 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 from sklearn.metrics.pairwise import haversine_distances
 import time
+from colorateur import color_csv
+
 
 def run_dbscan(csv_file, max_threshold_PIR):
     # Read the CSV with the same dtype as in balltree.py
@@ -94,11 +96,14 @@ def run_dbscan(csv_file, max_threshold_PIR):
     # Assign new labels
     result = df[['LAT', 'LON', 'PIR']].copy()
     result['cluster'] = new_labels
-    result.to_csv('res/res_clusters_dbscan.csv', index=False)
+    result.to_csv('res/dbscan/res_clusters_dbscan_' + str(max_threshold_PIR) + '.csv', index=False)
 
-    # Print the number of clusters (excluding noise if present)
+    #coloring
+    color_csv("res/dbscan/res_clusters_dbscan_" + str(max_threshold_PIR) +".csv")
+
+    #stats computing
     num_clusters = len(set(new_labels))
-    df_results = pd.read_csv('res/res_clusters_dbscan.csv')
+    df_results = pd.read_csv('res/dbscan/res_clusters_dbscan_' + str(max_threshold_PIR) + '.csv')
     nb_lignes = len(df_results)
     nb_moyen_users_par_clusters = (nb_lignes-1) / num_clusters
 
@@ -123,4 +128,4 @@ def run_dbscan(csv_file, max_threshold_PIR):
         pass
 
     # Écrire les données dans le fichier CSV
-    df_stats.to_csv('stats_dbscan.csv', index=False)
+    df_stats.to_csv('stats/stats_dbscan.csv', index=False)
