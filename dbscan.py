@@ -7,7 +7,7 @@ from colorateur import color_csv
 from calculs_clusters_stats import nb_users_par_cluster_dbscan
 
 def run_dbscan(csv_file, MAX_PIR):
-    # Read the CSV with the same dtype as in balltree.py
+    # dictionnary with coord from csv
     # LAT, LON, PIR columns
     dtype_dict = {
         'LAT': np.float32,
@@ -23,7 +23,7 @@ def run_dbscan(csv_file, MAX_PIR):
 
     # Try different values for eps and min_samples
     # You can adjust these values for better clustering results
-    EPS = 0.5 * RADIUS_KM / 6371.0  # Increase eps (try 0.5x the original radius)
+    EPS = 0.5 * RADIUS_KM / 6371.0  # 6371 > radius earth 
     MIN_SAMPLES = 2  # Lower min_samples to allow smaller clusters
 
     clustering = DBSCAN(eps=EPS, min_samples=MIN_SAMPLES, metric='haversine').fit(coords)
@@ -87,7 +87,7 @@ def run_dbscan(csv_file, MAX_PIR):
             percent_done = processed_clusters / total_clusters
             estimated_total = elapsed / percent_done if percent_done > 0 else 0
             remaining = estimated_total - elapsed
-            #print(f"Progression: {percent_done*100:.1f}% - Temps écoulé: {elapsed:.1f}s - Temps restant estimé: {remaining:.1f}s")
+            print(f"Progression: {percent_done*100:.1f}% - Temps écoulé: {elapsed:.1f}s - Temps restant estimé: {remaining:.1f}s")
 
     # Assign each noise point to its own unique cluster label (after all clusters)
     noise_indices = df.index[df['cluster'] == -1].tolist()
