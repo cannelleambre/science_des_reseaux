@@ -114,19 +114,6 @@ def run_dbscan(csv_file, max_threshold_PIR):
         'nb_moyen_users_par_clusters': [nb_moyen_users_par_clusters]
     })
     
-    # Vérifier si le fichier CSV existe déjà
-#try:
-        #df_stats_exist = pd.read_csv('stats_dbscan.csv')
-        #if max_threshold_PIR in df_stats_exist['max_threshold_PIR'].values:
-            # Mettre à jour les deux autres valeurs
-  #          df_stats_exist.loc[df_stats_exist['max_threshold_PIR'] == max_threshold_PIR, ['nb_cluster', 'nb_moyen_users_par_clusters']] = [num_clusters, nb_moyen_users_par_clusters]
-   #         df_stats = df_stats_exist
-    #    else:
-            # Concaténer les deux DataFrames
-   #         df_stats = pd.concat([df_stats_exist, df_stats], ignore_index=True)
-  #  except FileNotFoundError:
-    #    pass
-
-    # Écrire les données dans le fichier CSV
+    
     df_stats.to_csv('stats/stats_dbscan.csv', index=False)
     return df_stats

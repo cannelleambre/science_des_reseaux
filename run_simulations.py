@@ -52,7 +52,6 @@ elif algorithm == 'dbscan':
     stats_2000 = run_dbscan(csv_file, 2000)
     stats_4000 =run_dbscan(csv_file, 4000)
     stats_globales = pd.concat([stats_1000, stats_2000, stats_4000])
-    print(stats_globales)
     stats_globales.to_csv('stats/stats_' + algorithm + '.csv', index=False)
 else:
     print("Algorithme inconnu")
