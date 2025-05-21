@@ -48,9 +48,9 @@ if algorithm == 'ball_tree':
 elif algorithm == 'dbscan':
     #1 Gbps
     
-    run_dbscan(csv_file, 1000)
-    run_dbscan(csv_file, 2000)
-    run_dbscan(csv_file, 4000)
-
+    stats_1000 = run_dbscan(csv_file, 1000)
+    stats_2000 = run_dbscan(csv_file, 2000)
+    stats_4000 =run_dbscan(csv_file, 4000)
+    print(stats_1000)
 else:
     print("Algorithme inconnu")
